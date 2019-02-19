@@ -12,8 +12,8 @@ String terminal_id="1";
 
 #define GRP_PIN 27
 
-char ssid[] = "apcmhi";     // your network SSID (name)
-char pwd[] = "egi12345";  // your network password
+char ssid[] = "PLDTHOMEDSL_EXT";     // your network SSID (name)
+char pwd[] = "gahallon01";  // your network password
 String line;
 WiFiEspClient client;
 
@@ -58,14 +58,21 @@ unsigned long debounceDelay = 50;
 
 void setup() {
  Serial.begin(19200);
- Serial1.begin(115200);
+ Serial1.begin(9600);
+ lcd.begin();
+ lcd.backlight();
+ lcd.setCursor(1,0);
+ lcd.print("Connecting to Wifi");
  WiFi.init(&Serial1);
  WiFi.begin(ssid, pwd); 
  WiFi.status();
+ lcd.clear();
+ lcd.setCursor(1,0);
+ lcd.print("Connecting to Host");
  clientConnect();
  terminalInformation();
- lcd.begin();
- lcd.backlight();
+ resetTerminal();
+ lcd.clear();
  
  SPI.begin();               
  mfrc522.PCD_Init();
@@ -109,6 +116,8 @@ void loop() {
   
   else
   {
+    lcd.setCursor(0,2);
+    lcd.print("Reading Card");
     clientConnect();
     if (!userInformation(card_number))
     {
@@ -127,29 +136,56 @@ void loop() {
       lcd.clear();
       return;
     }
-
-    if (grpCount==0)
+   
+    if ((grp)&&(grpCount==0))
     {
         //getRep
       grpRep=card_number;
+      grpNumber=phone;
+      Serial.println("Group");
+      Serial.println(grpRep);
+      Serial.println(grpNumber);
+      queueTerminal();
     }
-    payment();
+    
+    lcd.clear();
+    initDisplay();  
     if (grp)
     {
       grpCount++;
+      lcd.setCursor(0,2);
+      lcd.print("Processing");
+      queueSingle();
+      lcd.clear();
+      initDisplay();
+      lcd.setCursor(0,2);
+      lcd.print("Queued");
+      delay(1000);
       lcd.clear();
       initDisplay();  
     }
+   
     
     
     else if (!grp)
     {
+      lcd.setCursor(0,2);
+      lcd.print("Processing");
+      queueTerminal();
       queueSingle();
+      lcd.clear();
+      initDisplay();
+      lcd.setCursor(0,2);
+      lcd.print("Queued");
+      delay(1000);
+      lcd.clear();
       //insert single to database
       Serial.print("Single:");
       Serial.println(card_number);
     }
-    
+    lcd.clear();
+    initDisplay();
+    payment();
   }
   
   Serial.println(card_number);
@@ -292,12 +328,13 @@ void payment()
   client.print(url);
   client.println();
   client.println("Host: 206.189.209.210");
-  client.println("Connection: open");
+  client.println("Connection: close");
 
   client.println();
-
+  client.flush();
+  client.stop();
+ 
   
-  delay(1000);
   discount=false;
   lcd.clear();
   initDisplay();
@@ -323,7 +360,7 @@ void terminalInformation(){
   client.print(url);
   client.println();
   client.println("Host: 206.189.209.210");
-  client.println("Connection: open");
+  client.println("Connection: close");
 
   client.println();
   Serial.println("Response");
@@ -344,7 +381,9 @@ void terminalInformation(){
  Serial.print("FARE");
  Serial.println(fare);
  Serial.print("TITLE");
-Serial.println(title);
+  Serial.println(title);
+  client.flush();
+  client.stop();
 }
 
 bool userInformation(String card_number){
@@ -357,16 +396,14 @@ bool userInformation(String card_number){
   client.print(url);
   client.println();
   client.println("Host: 206.189.209.210");
-  client.println("Connection: open");
+  client.println("Connection: close");
 
   client.println();
   Serial.println("Response");
-//  if(line.isEmpty())
-//  {
-//    Serial.println("NOT FOUND");
-//    return false;
-//  }
+
   line = client.readStringUntil("}");
+  client.flush();
+  client.stop();
   int start = line.indexOf('{');
   line=line.substring(start,line.length());
   Serial.println(line);
@@ -378,38 +415,77 @@ bool userInformation(String card_number){
     const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_ARRAY_SIZE(2) + 60;
   DynamicJsonBuffer jsonBuffer(capacity);
   JsonObject& root = jsonBuffer.parseObject(line);
-
+  String queue=root["queue"].as<char*>();
+  Serial.print("queue");
+  Serial.println(queue);
+  if (!queue.equals("0"))
+  {
+      return false;
+  }
  balance=root["bal"].as<double>();
  phone=root["phone"].as<char*>();
-
+  
   Serial.print("balance");
   Serial.println(balance);
   Serial.print("phone");
   Serial.println(phone);
+  
  return true;
 
 }
-void queueSingle()
+void queueTerminal()
 {
   clientConnect();
-  url="GET /jt/public/terminal/queue/"+terminal_id+"/1 HTTP/1.1";
+  url="GET /jt/public/terminal/queue/"+terminal_id+" HTTP/1.1";
   Serial.print("URL");
   Serial.println(url);
-////  //client.println(url);
 
 
   client.print(url);
   client.println();
   client.println("Host: 206.189.209.210");
-  client.println("Connection: open");
+  client.println("Connection: close");
 
   client.println();
-//  if(line.isEmpty())
-//  {
-//    Serial.println("NOT FOUND");
-//    return false;
-//  }
+  client.flush();
+  client.stop();
+}
+void queueSingle()
+{
+  clientConnect();
+  url="GET /jt/public/users/queue/"+card_number+"/"+terminal_id+" HTTP/1.1";
+  Serial.print("URL");
+  Serial.println(url);
+
+
+  client.print(url);
+  client.println();
+  client.println("Host: 206.189.209.210");
+  client.println("Connection: close");
+
+  client.println();
+  client.flush();
+  client.stop();
  
+
+}
+void resetTerminal()
+{
+  clientConnect();
+  url="GET /jt/public/terminal/reset/"+terminal_id+" HTTP/1.1";
+  Serial.print("URL");
+  Serial.println(url);
+
+
+  client.print(url);
+  client.println();
+  client.println("Host: 206.189.209.210");
+  client.println("Connection: close");
+
+  client.println();
+  client.flush();
+  client.stop();
+
 
 }
 void clientConnect()
@@ -420,4 +496,3 @@ void clientConnect()
     
   }
 }
-
