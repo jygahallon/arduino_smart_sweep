@@ -2,15 +2,23 @@
 #include <MFRC522.h>
 #include <WiFiEsp.h>
 #include <ArduinoJson.h>
-
+#include <DFRobot_sim808.h>
+#include <SoftwareSerial.h>
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
-
 #define SS_PIN 53 
-#define RST_PIN 5 
+#define RST_PIN 5
+#define PIN_TX    10
+#define PIN_RX    11 
+#define MESSAGE_LENGTH 160
+#define GRP_PIN 27
+
+SoftwareSerial mySerial(PIN_TX,PIN_RX);
+DFRobot_SIM808 sim808(&mySerial);
+String message;
+
 String terminal_id="1";
 
-#define GRP_PIN 27
 
 char ssid[] = "PLDTHOMEDSL_EXT";     // your network SSID (name)
 char pwd[] = "gahallon01";  // your network password
@@ -45,6 +53,7 @@ double fare;
 String destination;
 String source;
 String title;
+String queueNumber;
 
 //UserInformation
 double balance;
@@ -52,20 +61,24 @@ String phone;
 
 String grpRep;
 String grpNumber;
-
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50; 
 
 void setup() {
  Serial.begin(19200);
  Serial1.begin(9600);
+ mySerial.begin(9600);
+
  lcd.begin();
  lcd.backlight();
  lcd.setCursor(1,0);
  lcd.print("Connecting to Wifi");
  WiFi.init(&Serial1);
- WiFi.begin(ssid, pwd); 
- WiFi.status();
+ while (WiFi.status() != WL_CONNECTED)
+ {
+   WiFi.begin(ssid, pwd); 
+
+ }
  lcd.clear();
  lcd.setCursor(1,0);
  lcd.print("Connecting to Host");
@@ -86,6 +99,12 @@ void setup() {
  
  pinMode(GRP_PIN,INPUT);
 
+ while(!sim808.init())
+  {
+      Serial.print("Sim808 init error\r\n");
+      delay(1000);
+  } 
+  sms("09202868902","Ready");
 }
 
 void loop() {
@@ -333,9 +352,34 @@ void payment()
   client.println();
   client.flush();
   client.stop();
- 
-  
+    clientConnect();
+
+  url="GET /jt/public/terminal/information/"+terminal_id+" HTTP/1.1";
+//  Serial.print("URL");
+//  Serial.println(url);
+////  //client.println(url);
+
+
+  client.print(url);
+  client.println();
+  client.println("Host: 206.189.209.210");
+  client.println("Connection: close");
+
+  client.println();
+  Serial.println("Response");
+
+  line = client.readStringUntil("}");
+  int start = line.indexOf('{');
+  line=line.substring(start,line.length());
+  Serial.println(line);
+    const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_ARRAY_SIZE(2) + 60;
+  DynamicJsonBuffer jsonBuffer(capacity);
+  JsonObject& root = jsonBuffer.parseObject(line);
+  queueNumber=root["last_queue"].as<char*>();
+  client.flush();
+  client.stop();
   discount=false;
+  sms(phone,queueNumber);
   lcd.clear();
   initDisplay();
 }
@@ -495,4 +539,14 @@ void clientConnect()
   {
     
   }
+}
+void sms(String phoneNumber,String message)
+{
+  
+  
+       Serial.println("Sim808 init success");
+       Serial.println("Start to send message ...");
+       Serial.println(message);
+       Serial.println(phoneNumber);
+      sim808.sendSMS(phoneNumber.c_str(),message.c_str());    
 }
