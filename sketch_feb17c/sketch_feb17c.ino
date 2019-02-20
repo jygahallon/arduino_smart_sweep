@@ -20,8 +20,8 @@ String message;
 String terminal_id="1";
 
 
-char ssid[] = "PLDTHOMEDSL_EXT";     // your network SSID (name)
-char pwd[] = "gahallon01";  // your network password
+char ssid[] = "apcmhi";     // your network SSID (name)
+char pwd[] = "egi12345";  // your network password
 String line;
 WiFiEspClient client;
 
@@ -58,6 +58,7 @@ String queueNumber;
 //UserInformation
 double balance;
 String phone;
+double paymentUser;
 
 String grpRep;
 String grpNumber;
@@ -102,8 +103,11 @@ void setup() {
  while(!sim808.init())
   {
       Serial.print("Sim808 init error\r\n");
-      delay(1000);
-  } 
+      lcd.setCursor(1,0);
+      lcd.print("Connecting to SIM");
+      
+  }
+  lcd.clear(); 
   sms("09202868902","Ready");
 }
 
@@ -174,7 +178,7 @@ void loop() {
       grpCount++;
       lcd.setCursor(0,2);
       lcd.print("Processing");
-      queueSingle();
+     // queueSingle();
       lcd.clear();
       initDisplay();
       lcd.setCursor(0,2);
@@ -191,7 +195,7 @@ void loop() {
       lcd.setCursor(0,2);
       lcd.print("Processing");
       queueTerminal();
-      queueSingle();
+     // queueSingle();
       lcd.clear();
       initDisplay();
       lcd.setCursor(0,2);
@@ -321,7 +325,7 @@ void payment()
   lcd.setCursor(5,2);
   if (!discount)
   {
-    
+    paymentUser=fare;
     lcd.print(fare);
     balance-=fare;
    
@@ -330,6 +334,7 @@ void payment()
   {
 
     double discounted = fare-(fare*.20);
+    paymentUser=discounted;
     lcd.print(discounted);
     balance-=discounted;
   }
@@ -338,11 +343,9 @@ void payment()
   lcd.setCursor(8,3);
   lcd.print(balance);
 
-   url="GET /jt/public/users/updateBalance/"+card_number+"/"+balance+" HTTP/1.1";
+   url="GET /jt/public/users/queue/"+card_number+"/"+terminal_id+"/"+balance+"/"+paymentUser+" HTTP/1.1";
   Serial.print("URL");
   Serial.println(url);
-////  //client.println(url);
-
   clientConnect();
   client.print(url);
   client.println();
@@ -350,24 +353,8 @@ void payment()
   client.println("Connection: close");
 
   client.println();
-  client.flush();
-  client.stop();
-    clientConnect();
-
-  url="GET /jt/public/terminal/information/"+terminal_id+" HTTP/1.1";
-//  Serial.print("URL");
-//  Serial.println(url);
-////  //client.println(url);
-
-
-  client.print(url);
-  client.println();
-  client.println("Host: 206.189.209.210");
-  client.println("Connection: close");
-
-  client.println();
-  Serial.println("Response");
-
+  
+  
   line = client.readStringUntil("}");
   int start = line.indexOf('{');
   line=line.substring(start,line.length());
@@ -451,7 +438,7 @@ bool userInformation(String card_number){
   int start = line.indexOf('{');
   line=line.substring(start,line.length());
   Serial.println(line);
-  if(line.equals("{}"))
+  if((line.equals("{}"))||(line.equals("")))
   {
     Serial.println("empty");
     return false;
@@ -534,10 +521,10 @@ void resetTerminal()
 }
 void clientConnect()
 {
-  client.connect("206.189.209.210", 80);
   while(!client.connected())
   {
-    
+      client.connect("206.189.209.210", 80);
+
   }
 }
 void sms(String phoneNumber,String message)

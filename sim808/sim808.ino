@@ -38,26 +38,6 @@ void loop()
   //*********** Detecting unread SMS ************************
    messageIndex = sim808.isSMSunread();
 
-   //*********** At least, there is one UNREAD SMS ***********
-   if (messageIndex > 0)
-   { 
-      Serial.print("messageIndex: ");
-      Serial.println(messageIndex);
-      
-      sim808.readSMS(messageIndex, message, MESSAGE_LENGTH, phone, datetime);
-                 
-      //***********In order not to full SIM Memory, is better to delete it**********
-      sim808.deleteSMS(messageIndex);
-      Serial.print("From number: ");
-      Serial.println(phone);  
-      Serial.print("Datetime: ");
-      Serial.println(datetime);        
-      Serial.print("Recieved Message: ");
-      Serial.println(message); 
-    
-     
-      
-   }
     
        Serial.println("Sim808 init success");
        Serial.println("Start to send message ...");
