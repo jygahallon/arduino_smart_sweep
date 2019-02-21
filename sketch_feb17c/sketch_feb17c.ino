@@ -3,6 +3,7 @@
 #include <WiFiEsp.h>
 #include <ArduinoJson.h>
 #include <DFRobot_sim808.h>
+#include <Adafruit_Thermal.h>
 #include <SoftwareSerial.h>
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
@@ -10,8 +11,13 @@
 #define RST_PIN 5
 #define PIN_TX    10
 #define PIN_RX    11 
+#define TX_PIN 7 
+#define RX_PIN 6
 #define MESSAGE_LENGTH 160
 #define GRP_PIN 27
+
+SoftwareSerial printerSerial(RX_PIN, TX_PIN); // Declare SoftwareSerial obj first
+Adafruit_Thermal printer(&printerSerial);   
 
 SoftwareSerial mySerial(PIN_TX,PIN_RX);
 DFRobot_SIM808 sim808(&mySerial);
@@ -20,8 +26,8 @@ String message;
 String terminal_id="1";
 
 
-char ssid[] = "apcmhi";     // your network SSID (name)
-char pwd[] = "egi12345";  // your network password
+char ssid[] = "ml";     // your network SSID (name)
+char pwd[] = "mshsrondalla";  // your network password
 String line;
 WiFiEspClient client;
 
@@ -69,7 +75,8 @@ void setup() {
  Serial.begin(19200);
  Serial1.begin(9600);
  mySerial.begin(9600);
-
+ printerSerial.begin(19200);
+ 
  lcd.begin();
  lcd.backlight();
  lcd.setCursor(1,0);
@@ -122,6 +129,8 @@ void loop() {
       Serial.print("grpCount:");
       Serial.println(grpCount);
       grpCount=0;
+      printNumber();
+
     }
   if ( !mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -209,6 +218,10 @@ void loop() {
     lcd.clear();
     initDisplay();
     payment();
+    if(!grp)
+    {
+      printNumber();
+    }
   }
   
   Serial.println(card_number);
@@ -536,4 +549,23 @@ void sms(String phoneNumber,String message)
        Serial.println(message);
        Serial.println(phoneNumber);
       sim808.sendSMS(phoneNumber.c_str(),message.c_str());    
+}
+
+void printNumber(){
+printer.begin();        // Init printer (same regardless of serial type)
+  printer.doubleHeightOn();
+    printer.boldOn();
+    printer.justify('C');
+         printer.setSize('L'); 
+  printer.println(("Your queue\nnumber is:\n"));
+    printer.setLineHeight(50);
+  printer.println(queueNumber);
+
+//   printer.justify('C');
+ // printer.printBitmap(80, 38, lynia);
+    printer.feed(2);
+   printer.sleep();      // Tell printer to sleep
+  delay(3000L);         // Sleep for 3 seconds
+  printer.wake();       // MUST wake() before printing again, even if reset
+  printer.setDefault(); // Restore printer to defaults
 }
