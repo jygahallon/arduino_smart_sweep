@@ -1,21 +1,21 @@
 #include <SoftwareSerial.h>
 
-#define PIN_TX    10
-#define PIN_RX    11
-SoftwareSerial mySerial(PIN_TX,PIN_RX);
+//#define PIN_TX    10
+//#define PIN_RX    11
+//SoftwareSerial Serial1(PIN_TX,PIN_RX);
 void setup()
 {
-  Serial.begin(9600); // serial port used for debugging
-  mySerial.begin(9600);  // your ESP's baud rate might be different
+  Serial.begin(19200); // serial port used for debugging
+  Serial1.begin(9600);  // your ESP's baud rate might be different
 }
  
 void loop()
 {
-  if(mySerial.available())  // check if the ESP is sending a message
+  if(Serial1.available())  // check if the ESP is sending a message
   {
-    while(mySerial.available())
+    while(Serial1.available())
     {
-      int c = mySerial.read(); // read the next character
+      int c = Serial1.read(); // read the next character
       Serial.write((char)c);  // writes data to the serial monitor
     }
   }
@@ -38,6 +38,6 @@ void loop()
     Serial.println(cmd);
 
     // send the read character to the ESP
-    mySerial.print(cmd);
+    Serial1.print(cmd);
   }
 }
