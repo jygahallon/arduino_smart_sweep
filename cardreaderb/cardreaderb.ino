@@ -60,15 +60,16 @@ void loop(){
   
      if ( !mfrc522.PICC_IsNewCardPresent()) 
      {
-      loop();
+      return;
       }
       if ( ! mfrc522.PICC_ReadCardSerial()) 
       {
-        loop();
+        return;
       }
       readBlock(block, readbackblock);//read the block back
       card_number = (char*)readbackblock;
       Serial.println(card_number);
+      return;
   }
 }
 
