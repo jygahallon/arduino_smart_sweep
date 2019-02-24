@@ -6,9 +6,9 @@
 #define SS_PIN 53 
 #define RST_PIN 5
 
-char ssid[] = "apcmhi";     // your network SSID (name)
-char pwd[] = "egi12345";  // your network password
-String cardNumber[100];
+char ssid[] = "PLDTHOMEDSL_EXT";     // your network SSID (name)
+char pwd[] = "gahallon01";  // your network password
+String message;
 String terminal_id="1";
 String url;
 String line;  
@@ -39,6 +39,7 @@ void setup(){
    WiFi.begin(ssid, pwd); 
 
  }
+ 
 }
 
 void loop(){
@@ -47,16 +48,14 @@ void loop(){
     jeepCapacity=trackingJeep();
     if(jeepCapacity!=0)
     {
-      Serial.print("capacity");
-      Serial.println(jeepCapacity);
-      getCardNumber();
+      
       queue=true;
       return;
     }
   }
   else
   {
-    //Serial.println("START QUEUE");
+    
   
      if ( !mfrc522.PICC_IsNewCardPresent()) 
      {
@@ -69,7 +68,7 @@ void loop(){
       readBlock(block, readbackblock);//read the block back
       card_number = (char*)readbackblock;
       Serial.println(card_number);
-      return;
+      checkCard();
   }
 }
 
@@ -146,19 +145,33 @@ int trackingJeep(){
   }
   else
  {
-    jeepId=root["id"].as<char*>();
-    return root["capacity"].as<int>();
+    return 1;
 //    //capacity=(String)cap;
 //    Serial.print("Capacity");
 //    Serial.println(capacity);
 //    return true;
  }
 }
+void dequeue(){
+  clientConnect();
+  url="GET /jt/public/jeep/dequeue/"+jeepId+" HTTP/1.1";
+  Serial.print("URL");
+  Serial.println(url);
+////  //client.println(url);
 
-void getCardNumber()
+
+  client.print(url);
+  client.println();
+  client.println("Host: 206.189.209.210");
+  client.println("Connection: close");
+
+  client.println();
+ 
+}
+void checkCard()
 {
   clientConnect();
-   url="GET /jt/public/terminal/queueRide/"+terminal_id+"/"+jeepId+" HTTP/1.1";
+   url="GET /jt/public/terminal/queueRide/"+terminal_id+"/"+jeepId+"/"+card_number+" HTTP/1.1";
   Serial.print("URL");
   Serial.println(url);
 ////  //client.println(url);
@@ -181,14 +194,23 @@ void getCardNumber()
    const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_ARRAY_SIZE(2) + 60;
   DynamicJsonBuffer jsonBuffer(capacity);
   JsonObject& root = jsonBuffer.parseObject(line);
+  message=root["message"].as<char*>();
 
-  for (int i=0;i<jeepCapacity;i++)
+  if(message.equals("true"))
   {
-    cardNumber[i]=root[String(i)].as<char*>();
-    Serial.print(i);
-    Serial.println(cardNumber[i]);
+    Serial.println("queued");
+  }
+  else if(message.equals("false"))
+  {
+    Serial.println("invalid card");
+  }
+  else if (message.equals("full"))
+  {
+    Serial.println("jeep full. queued");
+    dequeue();
+    queue=false;
   }
   
   
+  
 }
-
