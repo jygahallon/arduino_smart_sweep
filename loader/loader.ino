@@ -8,8 +8,8 @@
 #include <LiquidCrystal_I2C.h>
 #define RST_PIN         5          // Configurable, see typical pin layout above
 #define SS_PIN          53   
-char ssid[] = "PLDTHOMEDSL_EXT";     // your network SSID (name)
-char pwd[] = "gahallon01";  // your network password
+char ssid[] = "ml";     // your network SSID (name)
+char pwd[] = "mshsrondalla";  // your network password
 String line;
 String url;
 
@@ -45,6 +45,7 @@ byte rowPins[numRows] = {36,34,32,30};
 byte colPins[numCols]= {28,26,24,22}; 
 Keypad myKeypad= Keypad(makeKeymap(keymap), rowPins, colPins, numRows, numCols);
 
+bool adding=false;
 void setup() {
   Serial.begin(19200);
   Serial1.begin(9600);
@@ -86,8 +87,14 @@ void loop()
   if ( ! mfrc522.PICC_ReadCardSerial()) {
     return;
   }
+  lcd.clear();
   readBlock(block, readbackblock);//read the block back
   card_number = (char*)readbackblock;
+  Serial.println(card_number);
+  information();
+  initDisplay();
+  adding =true;
+  while (adding){
   char keypress = myKeypad.waitForKey();
   if (isDigit(keypress)){
     lcd.clear();
@@ -98,7 +105,16 @@ void loop()
   }
   else if (keypress == 'A'){
     addBalance();
+    information();
     lcd.clear();
+    initDisplay();
+    delay(2000);
+      lcd.clear();
+
+    card_number="";
+    balance="";
+    adding=false;
+    return;
   }
   else if (keypress == 'B'){
     Serial.println("clear");
@@ -110,8 +126,17 @@ void loop()
     lcd.print(line);
   }
 
-  else{
-    //initDisplay();
+  else if (keypress == 'C'){
+
+    line="";
+    card_number="";
+    balance="";
+    adding=false;
+    lcd.clear();
+
+    return;
+   
+  }
   }
 
   
@@ -172,6 +197,35 @@ void addBalance()
 
 }
 
+void information()
+{
+  clientConnect();
+  url="GET /jt/public/users/information/"+card_number+" HTTP/1.1";
+  Serial.print("URL");
+  Serial.println(url);
+
+
+  client.print(url);
+  client.println();
+  client.println("Host: 206.189.209.210");
+  client.println("Connection: close");
+  client.println();
+  Serial.println("Response");
+  String responseline;
+  responseline = client.readStringUntil("}");
+  client.flush();
+  client.stop();
+  
+  int start = responseline.indexOf('{');
+  responseline=responseline.substring(start,responseline.length());
+  Serial.println(responseline);
+   const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_ARRAY_SIZE(2) + 60;
+  DynamicJsonBuffer jsonBuffer(capacity);
+  JsonObject& root = jsonBuffer.parseObject(responseline);
+  balance=root["bal"].as<char*>();
+  Serial.println(balance);
+
+}
 int readBlock(int blockNumber, byte arrayAddress[]) 
 {
   int largestModulo4Number=blockNumber/4*4;
