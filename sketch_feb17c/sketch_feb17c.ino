@@ -7,6 +7,8 @@
 #include <SoftwareSerial.h>
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
+#include "Logo.h"
+
 #define SS_PIN 53 
 #define RST_PIN 5
 #define PIN_TX    10
@@ -14,7 +16,7 @@
 #define TX_PIN 7 
 #define RX_PIN 6
 #define MESSAGE_LENGTH 160
-#define GRP_PIN 27
+#define GRP_PIN 4
 
 SoftwareSerial printerSerial(RX_PIN, TX_PIN); // Declare SoftwareSerial obj first
 Adafruit_Thermal printer(&printerSerial);   
@@ -26,8 +28,8 @@ String message;
 String terminal_id="1";
 
 
-char ssid[] = "ml";     // your network SSID (name)
-char pwd[] = "mshsrondalla";  // your network password
+char ssid[] = "apcmhi";     // your network SSID (name)
+char pwd[] = "egi12345";  // your network password
 String line;
 WiFiEspClient client;
 
@@ -46,7 +48,7 @@ String card_number;
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
 bool discount=false;
-bool grp=false;
+bool grp=true;
 
 int ledState = HIGH;         
 int buttonState;            
@@ -106,6 +108,7 @@ void setup() {
 
  
  pinMode(GRP_PIN,INPUT);
+ digitalWrite(GRP_PIN,HIGH);
 
  while(!sim808.init())
   {
@@ -215,10 +218,11 @@ void loop() {
       Serial.print("Single:");
       Serial.println(card_number);
     }
+   
     lcd.clear();
     initDisplay();
     payment();
-    if(!grp)
+     if(!grp)
     {
       printNumber();
     }
@@ -553,13 +557,14 @@ void sms(String phoneNumber,String message)
 
 void printNumber(){
 printer.begin();        // Init printer (same regardless of serial type)
-  printer.doubleHeightOn();
-    printer.boldOn();
-    printer.justify('C');
-         printer.setSize('L'); 
-  printer.println(("Your queue\nnumber is:\n"));
-    printer.setLineHeight(50);
-  printer.println(queueNumber);
+  printer.setSize('L');        // Set type size, accepts 'S', 'M', 'L'
+printer.justify('C');
+  printer.println("Your Queue\nNumber is:");
+  //  printer.setLineHeight(50);
+  printer.println(queueNumber+"\n");
+  //printer.println();
+    printer.printBitmap(logo_width, logo_height, logo_data);
+printer.println();
 
 //   printer.justify('C');
  // printer.printBitmap(80, 38, lynia);
