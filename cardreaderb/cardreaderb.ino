@@ -6,8 +6,8 @@
 #define SS_PIN 53 
 #define RST_PIN 5
 
-char ssid[] = "PLDTHOMEDSL_EXT";     // your network SSID (name)
-char pwd[] = "gahallon01";  // your network password
+char ssid[] = "apcmhi";     // your network SSID (name)
+char pwd[] = "egi12345";  // your network password
 String message;
 String terminal_id="1";
 String url;
@@ -56,7 +56,7 @@ void loop(){
   else
   {
     
-  
+    
      if ( !mfrc522.PICC_IsNewCardPresent()) 
      {
       return;
@@ -68,6 +68,7 @@ void loop(){
       readBlock(block, readbackblock);//read the block back
       card_number = (char*)readbackblock;
       Serial.println(card_number);
+      Serial.println(jeepId);
       checkCard();
   }
 }
@@ -136,8 +137,12 @@ int trackingJeep(){
   DynamicJsonBuffer jsonBuffer(capacity);
   JsonObject& root = jsonBuffer.parseObject(line);
   String on_location=root["on_location"].as<char*>();
+   jeepId=root["id"].as<char*>();
+
   Serial.print("on_location");
   Serial.println(on_location);
+  Serial.print("jeepId");
+  Serial.println(jeepId);
   //return false;
   if (on_location.equals("0"))
   {
@@ -171,6 +176,7 @@ void dequeue(){
 void checkCard()
 {
   clientConnect();
+  Serial.println(jeepId);
    url="GET /jt/public/terminal/queueRide/"+terminal_id+"/"+jeepId+"/"+card_number+" HTTP/1.1";
   Serial.print("URL");
   Serial.println(url);
