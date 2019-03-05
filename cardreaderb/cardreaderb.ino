@@ -5,7 +5,8 @@
 
 #define SS_PIN 53 
 #define RST_PIN 5
-
+#define GRN_PIN 13
+#define RED_PIN 12
 char ssid[] = "apcmhi";     // your network SSID (name)
 char pwd[] = "egi12345";  // your network password
 String message;
@@ -24,6 +25,8 @@ bool queue=false;
 int jeepCapacity=0;
 String jeepId;
 void setup(){
+  pinMode(GRN_PIN,OUTPUT);
+  pinMode(RED_PIN,OUTPUT);
   Serial.begin(19200);
   Serial1.begin(9600);
 
@@ -36,15 +39,22 @@ void setup(){
  WiFi.init(&Serial1);
  while (WiFi.status() != WL_CONNECTED)
  {
+  digitalWrite(GRN_PIN, HIGH);
+  digitalWrite(RED_PIN, HIGH);
    WiFi.begin(ssid, pwd); 
 
  }
+  digitalWrite(GRN_PIN, LOW);
+  digitalWrite(RED_PIN, LOW);
  
 }
 
 void loop(){
+;
   if(!queue)
   {
+    digitalWrite(RED_PIN, HIGH);
+    digitalWrite(GRN_PIN, LOW);
     jeepCapacity=trackingJeep();
     if(jeepCapacity!=0)
     {
@@ -55,8 +65,7 @@ void loop(){
   }
   else
   {
-    
-    
+     digitalWrite(RED_PIN,LOW);
      if ( !mfrc522.PICC_IsNewCardPresent()) 
      {
       return;
@@ -67,9 +76,14 @@ void loop(){
       }
       readBlock(block, readbackblock);//read the block back
       card_number = (char*)readbackblock;
+      digitalWrite(RED_PIN,HIGH);
+      digitalWrite(GRN_PIN,HIGH);
+    
       Serial.println(card_number);
       Serial.println(jeepId);
+       
       checkCard();
+      
   }
 }
 
@@ -202,16 +216,27 @@ void checkCard()
   JsonObject& root = jsonBuffer.parseObject(line);
   message=root["message"].as<char*>();
 
+ digitalWrite(RED_PIN,LOW);
+      digitalWrite(GRN_PIN,LOW);
   if(message.equals("true"))
   {
+    digitalWrite(GRN_PIN, HIGH);
+    delay(3000);
+    digitalWrite(GRN_PIN,LOW);
     Serial.println("queued");
   }
   else if(message.equals("false"))
   {
+     digitalWrite(RED_PIN, HIGH);
+    delay(3000);
+    digitalWrite(RED_PIN,LOW);
     Serial.println("invalid card");
   }
   else if (message.equals("full"))
   {
+     digitalWrite(GRN_PIN, HIGH);
+    delay(3000);
+    digitalWrite(GRN_PIN,LOW);
     Serial.println("jeep full. queued");
     dequeue();
     queue=false;

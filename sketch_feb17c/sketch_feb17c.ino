@@ -13,11 +13,12 @@
 #define RST_PIN 5
 #define PIN_TX    10
 #define PIN_RX    11 
-#define TX_PIN 7 
+#define TX_PIN 7
 #define RX_PIN 6
 #define MESSAGE_LENGTH 160
 #define GRP_PIN 4
-
+#define GRN_PIN 13
+#define RED_PIN 12
 SoftwareSerial printerSerial(RX_PIN, TX_PIN); // Declare SoftwareSerial obj first
 Adafruit_Thermal printer(&printerSerial);   
 
@@ -74,6 +75,13 @@ unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50; 
 
 void setup() {
+ pinMode(GRN_PIN, OUTPUT);
+ pinMode(RED_PIN,OUTPUT);
+ digitalWrite(GRN_PIN,HIGH);
+ digitalWrite(RED_PIN,HIGH);
+ delay(1000);
+ digitalWrite(GRN_PIN,LOW);
+ digitalWrite(RED_PIN,LOW);
  Serial.begin(19200);
  Serial1.begin(9600);
  mySerial.begin(9600);
@@ -87,8 +95,11 @@ void setup() {
  while (WiFi.status() != WL_CONNECTED)
  {
    WiFi.begin(ssid, pwd); 
-
+   digitalWrite(GRN_PIN, HIGH);
+   digitalWrite(RED_PIN,HIGH);
  }
+ digitalWrite(GRN_PIN, LOW);
+   digitalWrite(RED_PIN,LOW);
  lcd.clear();
  lcd.setCursor(1,0);
  lcd.print("Connecting to Host");
@@ -115,13 +126,19 @@ void setup() {
       Serial.print("Sim808 init error\r\n");
       lcd.setCursor(1,0);
       lcd.print("Connecting to SIM");
+      digitalWrite(GRN_PIN, HIGH);
+      digitalWrite(RED_PIN,HIGH);
       
   }
   lcd.clear(); 
   sms("09202868902","Ready");
+  digitalWrite(GRN_PIN, LOW);
+  digitalWrite(RED_PIN,LOW);
 }
 
 void loop() {
+  digitalWrite(GRN_PIN, LOW);
+   digitalWrite(RED_PIN,LOW);
   initDisplay();
   buttonCheck();
   if ((!grp)&&(grpCount!=0))
@@ -158,7 +175,9 @@ void loop() {
     {
       lcd.setCursor(0,2);
       lcd.print("Invalid Card");
+      digitalWrite(RED_PIN, HIGH);
       delay(1000);
+      digitalWrite(RED_PIN,LOW);
       lcd.clear();
       return;
     }
@@ -167,7 +186,9 @@ void loop() {
     {
       lcd.setCursor(0,2);
       lcd.print("Insufficient Balance");
+      digitalWrite(RED_PIN,HIGH);
       delay(1000);
+      digitalWrite(RED_PIN,LOW);
       lcd.clear();
       return;
     }
@@ -189,6 +210,7 @@ void loop() {
     {
       grpCount++;
       lcd.setCursor(0,2);
+      digitalWrite(GRN_PIN, HIGH);
       lcd.print("Processing");
      // queueSingle();
       lcd.clear();
@@ -196,6 +218,7 @@ void loop() {
       lcd.setCursor(0,2);
       lcd.print("Queued");
       delay(1000);
+      digitalWrite(GRN_PIN,LOW);
       lcd.clear();
       initDisplay();  
     }
@@ -206,7 +229,9 @@ void loop() {
     {
       lcd.setCursor(0,2);
       lcd.print("Processing");
+      digitalWrite(GRN_PIN, HIGH);
       queueTerminal();
+      digitalWrite(GRN_PIN,LOW);
      // queueSingle();
       lcd.clear();
       initDisplay();
@@ -222,8 +247,9 @@ void loop() {
     lcd.clear();
     initDisplay();
     payment();
-     if(!grp)
+    if(!grp)
     {
+      
       printNumber();
     }
   }
@@ -541,6 +567,7 @@ void clientConnect()
   while(!client.connected())
   {
       client.connect("206.189.209.210", 80);
+      
 
   }
 }

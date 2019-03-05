@@ -8,8 +8,8 @@
 #include <LiquidCrystal_I2C.h>
 #define RST_PIN         5          // Configurable, see typical pin layout above
 #define SS_PIN          53   
-char ssid[] = "ml";     // your network SSID (name)
-char pwd[] = "mshsrondalla";  // your network password
+char ssid[] = "apcmhi";     // your network SSID (name)
+char pwd[] = "egi12345";  // your network password
 String line;
 String url;
 
@@ -213,13 +213,14 @@ void information()
   Serial.println("Response");
   String responseline;
   responseline = client.readStringUntil("}");
+  Serial.println(responseline);
   client.flush();
   client.stop();
-  
+
   int start = responseline.indexOf('{');
   responseline=responseline.substring(start,responseline.length());
   Serial.println(responseline);
-   const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_ARRAY_SIZE(2) + 60;
+  const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_ARRAY_SIZE(2) + 60;
   DynamicJsonBuffer jsonBuffer(capacity);
   JsonObject& root = jsonBuffer.parseObject(responseline);
   balance=root["bal"].as<char*>();
